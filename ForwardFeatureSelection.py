@@ -11,7 +11,11 @@ class ForwardFeatureSelection:
         self.log = log
         self.verbose = verbose
 
-        def get_max_no_features(self):
+        def get_max_no_features_count(self):
+			'''
+				This function is used to get the column count
+				if the max_no_features = None
+			'''
             if self.max_no_features == None:
                 column_count = self.X_train.shape[1]
                 return column_count
