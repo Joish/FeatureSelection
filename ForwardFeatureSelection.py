@@ -79,6 +79,8 @@ class ForwardFeatureSelection:
     def calcuate_prefered_metric(self, y_test, y_pred):
         if self.metric_obj == None:
             report = classification_report(y_test, y_pred, output_dict=True)
+            if self.verbose > 2:
+                print(classification_report(y_test, y_pred))
             return report['accuracy']
         else:
             logging.error('WORKING ON IT')
@@ -87,18 +89,18 @@ class ForwardFeatureSelection:
     #     # print(self.selected)
     #     return self.selected
 
-    def soft_forward_feature_selection(self):
-        X, y = self.return_X_y()
-        feature_list = self.get_features_list()
+    def core_algoritm(self, X, y, feature_list, sel, max_no_features, sco):
         feature_list_len = len(feature_list)
-        max_no_features = self.get_max_no_features_count()
-        score = 0
+        selected = sel
+        score = sco
+        temp_selected = ''
+        stop = False
 
         for iteration in range(feature_list_len):
             logging.warning("##### {} out of {} #####".format(
                 iteration+1, feature_list_len))
 
-            features = self.selected + [feature_list[iteration]]
+            features = selected + [feature_list[iteration]]
             X_ffs = X[features]
 
             # print(features)
@@ -110,16 +112,68 @@ class ForwardFeatureSelection:
 
             metric_score = self.calcuate_prefered_metric(y_test, y_pred)
 
-            # print(metric_score)
-            if metric_score > score:
-                score = metric_score
-                self.selected.append(feature_list[iteration])
+            # print(features, metric_score)
+            # print('\n')
 
-            if len(self.selected) <= max_no_features and len(self.selected) >= max_no_features:
+            if self.variation == 'soft':
+                if metric_score > score:
+                    score = metric_score
+                    selected.append(feature_list[iteration])
+
+                if len(selected) <= max_no_features and len(selected) >= max_no_features:
+                    break
+
+            elif self.variation == 'hard':
+                if metric_score > score:
+                    score = metric_score
+                    temp_selected = feature_list[iteration]
+
+        if self.variation == 'hard':
+            if temp_selected:
+                selected.append(temp_selected)
+            else:
+                stop = True
+
+        return selected, score, stop
+
+    def soft_forward_feature_selection(self):
+        X, y = self.return_X_y()
+        feature_list = self.get_features_list()
+        max_no_features = self.get_max_no_features_count()
+        score = 0
+
+        self.selected, score, stop = self.core_algoritm(
+            X, y, feature_list, self.selected, max_no_features, score)
+
+    def hard_forward_feature_selection(self):
+        X, y = self.return_X_y()
+        feature_list = self.get_features_list()
+        feature_list_len = len(feature_list)
+        max_no_features = self.get_max_no_features_count()
+        score = 0
+        cnt = 0
+
+        while len(feature_list):
+            logging.warning("{} out of {}".format(
+                cnt+1, feature_list_len))
+
+            temp_selected, score, stop = self.core_algoritm(
+                X, y, feature_list, self.selected, max_no_features, score)
+
+            # print(temp_selected, score, stop)
+            # print(feature_list)
+
+            if stop:
                 break
 
-        # self.get_final_features()
-        # print(feature_list, feature_list_len, max_no_features)
+            self.selected = temp_selected
+            feature_list = self.remove_from_list(feature_list, self.selected)
+
+            cnt += 1
+
+            # print(self.selected, score, feature_list)
+
+            print('\n')
 
     def intial_check(self):
         if self.min_no_features > self.max_no_features:
@@ -130,11 +184,37 @@ class ForwardFeatureSelection:
             logging.error('INVALID SCALER OBJECT')
             exit(0)
 
+    def get_final_model_results(self):
+        X, y = self.return_X_y()
+
+        logging.warning("FINAL MODEL RESULTS WITH FEATURES - {}".format(
+            self.selected))
+
+        X_ffs = X[self.selected]
+
+        if self.scale_obj:
+            X_ffs = self.scale_obj.fit_transform(X_ffs)
+
+        y_test, y_pred = self.build_model(self.classifier, X_ffs, y)
+
+        metric_score = self.calcuate_prefered_metric(y_test, y_pred)
+
+        logging.warning("RESULT : {}".format(metric_score))
+
     def run(self):
         self.intial_check()
+
+        logging.warning('STARTING {} FORWARD FEATURE SELECTION'.format(
+            self.variation.upper()))
+
         if self.variation == 'soft':
-            logging.warning('STARTING SOFT FORWARD FEATURE SELECTION')
             self.soft_forward_feature_selection()
-            return (self.selected)
+        elif self.variation == 'hard':
+            self.hard_forward_feature_selection()
         else:
             logging.error('INVALID VARIATION PASSED')
+
+        if self.verbose > 1:
+            self.get_final_model_results()
+
+        return (self.selected)
