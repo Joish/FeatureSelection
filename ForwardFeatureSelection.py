@@ -1,6 +1,6 @@
 import logging
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+from helpers import get_final_model_results, return_X_y, remove_from_list, get_features_list, \
+    get_max_no_features_count, get_result, intial_check
 
 
 class ForwardFeatureSelection:
@@ -25,70 +25,6 @@ class ForwardFeatureSelection:
         logging.basicConfig(format='%(asctime)s - %(message)s',
                             datefmt='%d-%b-%y %H:%M:%S')
 
-    def remove_from_list(self, master_list=[], remove_list=[]):
-        # This function is used to remove a list of
-        # values from another list
-
-        for items in remove_list:
-            if items in master_list:
-                master_list.remove(items)
-
-        return master_list
-
-    def get_max_no_features_count(self):
-        # This function is used to get the column count
-        # if the max_no_features = None
-
-        feature_list = self.get_features_list()
-        if self.max_no_features == None:
-            column_count = self.dataframe[feature_list].shape[1]
-            return column_count
-
-        return self.max_no_features
-
-    def get_features_list(self):
-        # This funtion return the feature list of
-        # the dataframe by removing the target feature
-
-        feature_list = list(self.dataframe)
-        feature_list = self.remove_from_list(
-            feature_list, [self.target_name])
-
-        return feature_list
-
-    def return_X_y(self):
-        # This function return,
-        # X - In-dependent variable dataframe
-        # y - Dependent variable dataframe
-
-        feature_list = self.get_features_list()
-        X = self.dataframe[feature_list]
-        y = self.dataframe[self.target_name]
-
-        return X, y
-
-    def build_model(self, classifier, X, y):
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=self.test_size, random_state=self.random_state, stratify=y)
-
-        classifier.fit(X_train, y_train)
-        y_pred = classifier.predict(X_test)
-
-        return y_test, y_pred
-
-    def calcuate_prefered_metric(self, y_test, y_pred):
-        if self.metric_obj == None:
-            report = classification_report(y_test, y_pred, output_dict=True)
-            if self.verbose > 2:
-                print(classification_report(y_test, y_pred))
-            return report['accuracy']
-        else:
-            logging.error('WORKING ON IT')
-
-    # def get_final_features(self):
-    #     # print(self.selected)
-    #     return self.selected
-
     def core_algoritm(self, X, y, feature_list, sel, max_no_features, sco):
         feature_list_len = len(feature_list)
         selected = sel
@@ -101,16 +37,10 @@ class ForwardFeatureSelection:
                 iteration+1, feature_list_len))
 
             features = selected + [feature_list[iteration]]
-            X_ffs = X[features]
 
-            # print(features)
-
-            if self.scale_obj:
-                X_ffs = self.scale_obj.fit_transform(X_ffs)
-
-            y_test, y_pred = self.build_model(self.classifier, X_ffs, y)
-
-            metric_score = self.calcuate_prefered_metric(y_test, y_pred)
+            metric_score = get_result(X, y, features, self.scale_obj, self.classifier,
+                                      self.test_size, self.random_state, self.metric_obj,
+                                      self.verbose)
 
             # print(features, metric_score)
             # print('\n')
@@ -137,19 +67,21 @@ class ForwardFeatureSelection:
         return selected, score, stop
 
     def soft_forward_feature_selection(self):
-        X, y = self.return_X_y()
-        feature_list = self.get_features_list()
-        max_no_features = self.get_max_no_features_count()
+        X, y = return_X_y(self.dataframe, self.target_name)
+        feature_list = get_features_list(self.dataframe, self.target_name)
+        max_no_features = get_max_no_features_count(
+            self.dataframe, self.target_name, self.max_no_features)
         score = 0
 
         self.selected, score, stop = self.core_algoritm(
             X, y, feature_list, self.selected, max_no_features, score)
 
     def hard_forward_feature_selection(self):
-        X, y = self.return_X_y()
-        feature_list = self.get_features_list()
+        X, y = return_X_y(self.dataframe, self.target_name)
+        feature_list = get_features_list(self.dataframe, self.target_name)
         feature_list_len = len(feature_list)
-        max_no_features = self.get_max_no_features_count()
+        max_no_features = get_max_no_features_count(
+            self.dataframe, self.target_name, self.max_no_features)
         score = 0
         cnt = 0
 
@@ -167,7 +99,7 @@ class ForwardFeatureSelection:
                 break
 
             self.selected = temp_selected
-            feature_list = self.remove_from_list(feature_list, self.selected)
+            feature_list = remove_from_list(feature_list, self.selected)
 
             cnt += 1
 
@@ -175,34 +107,9 @@ class ForwardFeatureSelection:
 
             print('\n')
 
-    def intial_check(self):
-        if self.min_no_features > self.max_no_features:
-            logging.error('MINIMUM NUMBER OF FEATURES PARAMETER SHOULD \
-                                BE LESS THAT MAXIMUM NUMBER OF FEATURE PARAMETER')
-            exit(0)
-        if self.scale_obj != None and not isinstance(self.scale_obj, object):
-            logging.error('INVALID SCALER OBJECT')
-            exit(0)
-
-    def get_final_model_results(self):
-        X, y = self.return_X_y()
-
-        logging.warning("FINAL MODEL RESULTS WITH FEATURES - {}".format(
-            self.selected))
-
-        X_ffs = X[self.selected]
-
-        if self.scale_obj:
-            X_ffs = self.scale_obj.fit_transform(X_ffs)
-
-        y_test, y_pred = self.build_model(self.classifier, X_ffs, y)
-
-        metric_score = self.calcuate_prefered_metric(y_test, y_pred)
-
-        logging.warning("RESULT : {}".format(metric_score))
-
     def run(self):
-        self.intial_check()
+        intial_check(self.min_no_features,
+                     self.max_no_features, self.scale_obj)
 
         logging.warning('STARTING {} FORWARD FEATURE SELECTION'.format(
             self.variation.upper()))
@@ -215,6 +122,8 @@ class ForwardFeatureSelection:
             logging.error('INVALID VARIATION PASSED')
 
         if self.verbose > 1:
-            self.get_final_model_results()
+            get_final_model_results(self.dataframe, self.target_name, self.selected, self.scale_obj,
+                                    self.classifier, self.test_size, self.random_state,
+                                    self.metric_obj, self.verbose)
 
         return (self.selected)

@@ -12,7 +12,7 @@ df = df[['SepalLengthCm', 'SepalWidthCm',
          'PetalLengthCm', 'PetalWidthCm', 'Species']]
 
 ffs = ForwardFeatureSelection(
-    et, df, 'Species',  scale_obj=MinMaxScaler(), max_no_features=7, min_no_features=2, variation='hard')
+    et, df, 'Species',  scale_obj=MinMaxScaler(), max_no_features=5, min_no_features=2, variation='hard', verbose=3)
 # print(dir(ffs))
 
-ffs.run()    # return selected features
+print(ffs.run())    # return selected features
