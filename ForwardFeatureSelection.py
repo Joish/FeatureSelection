@@ -6,7 +6,7 @@ from helpers import get_final_model_results, return_X_y, remove_from_list, get_f
 class ForwardFeatureSelection:
     def __init__(self, classifier, dataframe, target_name, metric_obj=None, scale_obj=None, test_size=0.3,
                  min_no_features=0, max_no_features=None, log=False, variation='soft', verbose=1,
-                 random_state=42):
+                 random_state=42, selected=[]):
 
         self.classifier = classifier
         self.dataframe = dataframe
@@ -21,7 +21,7 @@ class ForwardFeatureSelection:
         self.verbose = verbose
         self.random_state = random_state
 
-        self.selected = []
+        self.selected = selected
         logging.basicConfig(format='%(asctime)s - %(message)s',
                             datefmt='%d-%b-%y %H:%M:%S')
 
@@ -69,6 +69,7 @@ class ForwardFeatureSelection:
     def soft_forward_feature_selection(self):
         X, y = return_X_y(self.dataframe, self.target_name)
         feature_list = get_features_list(self.dataframe, self.target_name)
+        feature_list = remove_from_list(feature_list, self.selected)
         max_no_features = get_max_no_features_count(
             self.dataframe, self.target_name, self.max_no_features)
         score = 0
@@ -79,6 +80,7 @@ class ForwardFeatureSelection:
     def hard_forward_feature_selection(self):
         X, y = return_X_y(self.dataframe, self.target_name)
         feature_list = get_features_list(self.dataframe, self.target_name)
+        feature_list = remove_from_list(feature_list, self.selected)
         feature_list_len = len(feature_list)
         max_no_features = get_max_no_features_count(
             self.dataframe, self.target_name, self.max_no_features)
@@ -108,8 +110,8 @@ class ForwardFeatureSelection:
             print('\n')
 
     def run(self):
-        intial_check(self.min_no_features,
-                     self.max_no_features, self.scale_obj)
+        intial_check(self.min_no_features, self.max_no_features,
+                     self.scale_obj, self.dataframe, self.target_name, self.selected)
 
         logging.warning('STARTING {} FORWARD FEATURE SELECTION'.format(
             self.variation.upper()))

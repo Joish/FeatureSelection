@@ -3,14 +3,22 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
 
-def intial_check(min_no_features, max_no_features, scale_obj):
+def intial_check(min_no_features, max_no_features, scale_obj, dataframe, target_name, selected):
+    feature_list = get_features_list(dataframe, target_name)
+
     if min_no_features > max_no_features:
         logging.error('MINIMUM NUMBER OF FEATURES PARAMETER SHOULD \
                                 BE LESS THAT MAXIMUM NUMBER OF FEATURE PARAMETER')
         exit(0)
+
     if scale_obj != None and not isinstance(scale_obj, object):
         logging.error('INVALID SCALER OBJECT')
         exit(0)
+
+    for feat in selected:
+        if feat not in feature_list:
+            logging.error("FEATURE '{}' MISSING IN DATAFRAME".format(feat))
+            exit(0)
 
 
 def remove_from_list(master_list=[], remove_list=[]):
