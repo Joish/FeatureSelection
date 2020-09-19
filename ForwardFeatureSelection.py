@@ -32,6 +32,7 @@ class ForwardFeatureSelection:
         score = sco
         temp_selected = ''
         stop = False
+        min_no_features = self.min_no_features
 
         for iteration in range(feature_list_len):
             logging.warning("##### {} out of {} #####".format(
@@ -52,18 +53,24 @@ class ForwardFeatureSelection:
                     selected.append(feature_list[iteration])
 
                     if self.log:
-                        content = "{} - {} \n".format(selected,score)
-                        file_logger(self.current_log_file_name,content)
+                        content = "{} - {} \n".format(selected, score)
+                        file_logger(self.current_log_file_name, content)
 
-                if len(selected) <= max_no_features and len(selected) >= min_no_features:
+                # print(max_no_features, min_no_features, len(selected))
+                if len(selected) >= max_no_features:
                     break
 
             elif self.variation == 'hard':
+                if metric_score >= score:
+                    score = metric_score
+                    temp_selected = feature_list[iteration]
+
+            elif self.variation == 'hard+':
                 if metric_score > score:
                     score = metric_score
                     temp_selected = feature_list[iteration]
 
-        if self.variation == 'hard':
+        if self.variation == 'hard' or self.variation == 'hard+':
             if temp_selected:
                 selected.append(temp_selected)
 
@@ -73,8 +80,8 @@ class ForwardFeatureSelection:
             else:
                 stop = True
 
-            if len(selected) <= max_no_features and len(selected) >= min_no_features:
-                stop = True 
+            if len(selected) >= max_no_features:
+                stop = True
 
         return selected, score, stop
 
@@ -107,6 +114,7 @@ class ForwardFeatureSelection:
                 X, y, feature_list, self.selected, max_no_features, score)
 
             # print(temp_selected, score, stop)
+            # print(temp_selected, score)
             # print(feature_list)
 
             if stop:
@@ -130,7 +138,7 @@ class ForwardFeatureSelection:
 
         if self.variation == 'soft':
             self.soft_forward_feature_selection()
-        elif self.variation == 'hard':
+        elif self.variation == 'hard' or self.variation == 'hard+':
             self.hard_forward_feature_selection()
         else:
             logging.error('INVALID VARIATION PASSED')

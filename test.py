@@ -11,11 +11,11 @@ et = ExtraTreesClassifier()
 df = df[['SepalLengthCm', 'SepalWidthCm',
          'PetalLengthCm', 'PetalWidthCm', 'Species']]
 
-selected = ['PetalWidthC']
-# selected = []
+# selected = ['PetalWidthC']
+selected = []
 
 ffs = ForwardFeatureSelection(
-    et, df, 'Species',  scale_obj=MinMaxScaler(), max_no_features=5, min_no_features=2, variation='soft', verbose=1, selected=selected)
+    et, df, 'Species',  scale_obj=MinMaxScaler(), max_no_features=5, min_no_features=2, variation='soft', verbose=2, selected=selected, log=True)
 # print(dir(ffs))
 
 print(ffs.run())    # return selected features
