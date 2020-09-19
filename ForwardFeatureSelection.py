@@ -1,6 +1,6 @@
 import logging
 from helpers import get_final_model_results, return_X_y, remove_from_list, get_features_list, \
-    get_max_no_features_count, get_result, intial_check, get_current_log_file_name
+    get_max_no_features_count, get_result, intial_check, get_current_log_file_name, file_logger
 
 
 class ForwardFeatureSelection:
@@ -51,7 +51,11 @@ class ForwardFeatureSelection:
                     score = metric_score
                     selected.append(feature_list[iteration])
 
-                if len(selected) <= max_no_features and len(selected) >= max_no_features:
+                    if self.log:
+                        content = "{} - {} \n".format(selected,score)
+                        file_logger(self.current_log_file_name,content)
+
+                if len(selected) <= max_no_features and len(selected) >= min_no_features:
                     break
 
             elif self.variation == 'hard':
@@ -62,8 +66,15 @@ class ForwardFeatureSelection:
         if self.variation == 'hard':
             if temp_selected:
                 selected.append(temp_selected)
+
+                if self.log:
+                    content = "{} - {} \n".format(selected, score)
+                    file_logger(self.current_log_file_name, content)
             else:
                 stop = True
+
+            if len(selected) <= max_no_features and len(selected) >= min_no_features:
+                stop = True 
 
         return selected, score, stop
 
