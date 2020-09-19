@@ -1,3 +1,5 @@
+import os
+import datetime
 import logging
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
@@ -108,6 +110,30 @@ def get_result(X, y, features, scale_obj, classifier, test_size, random_state,
         y_test, y_pred, metric_obj, verbose, features)
 
     return metric_score
+
+
+def get_current_log_file_name():
+    # Return the file name for logging
+
+    current_time = datetime.datetime.now()
+    return "Log::{}.txt".format(current_time)
+
+
+def file_logger(filename, content):
+    cwd = os.getcwd()
+    directory = "Log"
+    dir_path = os.path.join(cwd, directory)
+    file_path = os.path.join(dir_path, filename)
+
+    if not os.path.isdir(dir_path):
+        os.mkdir(dir_path)
+
+    if not os.path.isfile(file_path):
+        open(file_path, 'a').close()
+
+    f = open(file_path, "a")
+    f.write(str(content))
+    f.close()
 
 
 def get_final_model_results(dataframe, target_name, selected, scale_obj, classifier,

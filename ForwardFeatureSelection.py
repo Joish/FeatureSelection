@@ -1,6 +1,6 @@
 import logging
 from helpers import get_final_model_results, return_X_y, remove_from_list, get_features_list, \
-    get_max_no_features_count, get_result, intial_check
+    get_max_no_features_count, get_result, intial_check, get_current_log_file_name
 
 
 class ForwardFeatureSelection:
@@ -24,6 +24,7 @@ class ForwardFeatureSelection:
         self.selected = selected
         logging.basicConfig(format='%(asctime)s - %(message)s',
                             datefmt='%d-%b-%y %H:%M:%S')
+        self.current_log_file_name = get_current_log_file_name()
 
     def core_algoritm(self, X, y, feature_list, sel, max_no_features, sco):
         feature_list_len = len(feature_list)
